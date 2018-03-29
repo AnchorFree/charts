@@ -1,5 +1,23 @@
-apiVersion: extensions/v1beta1
-kind: Deployment
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-%s-cluster" .Release.Name (default .Chart.Name .Values.nameOverride) | trunc 63 | trimSuffix "-" }}
+  labels:
+    app: {{ template "vault.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  ports:
+  - port: 8201
+    name: cluster
+  clusterIP: None
+  selector:
+    app: {{ template "vault.name" . }}
+    release: {{ .Release.Name }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
   name: {{ template "vault.fullname" . }}
   labels:
@@ -8,7 +26,13 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
+  serviceName: {{ printf "%s-%s-cluster" .Release.Name (default .Chart.Name .Values.nameOverride) | trunc 63 | trimSuffix "-" | quote }}
   replicas: {{ .Values.replicaCount }}
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: {{ template "vault.name" . }}
+      release: {{ .Release.Name }}
   template:
     metadata:
       labels:
@@ -22,16 +46,28 @@ spec:
         {{- if .Values.vault.dev }}
         command: ["vault", "server", "-dev", "-dev-listen-address", "[::]:8200"]
         {{- else }}
-        command: ["vault", "server", "-config", "/vault/config/config.json"]
+        command:
+          - "/bin/sh"
+          - "-ec"
+          - |
+            export VAULT_CLUSTER_ADDR=http://$(hostname).${STATEFULLSET_SERVICE}:8201
+            exec vault server -config /vault/config/config.json
         {{- end }}
+        env:
+        - name: STATEFULLSET_SERVICE
+          value: {{ printf "%s-%s-cluster" .Release.Name (default .Chart.Name .Values.nameOverride) | trunc 63 | trimSuffix "-" | quote }}
         ports:
         - containerPort: {{ .Values.service.port }}
+        - containerPort: 8201
         livenessProbe:
           tcpSocket:
             port: {{ .Values.service.port }}
         readinessProbe:
-          tcpSocket:
-            port: {{ .Values.service.port }}
+          exec:
+            command:
+            - sh
+            - -c
+            - 'VAULT_ADDR=http://127.0.0.1:8200/ vault status'
         securityContext:
           readOnlyRootFilesystem: true
           capabilities:
