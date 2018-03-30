@@ -14,3 +14,14 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- $name := default .Chart.Name .Values.nameOverride -}}
 {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
+
+{{/*
+Return the appropriate apiVersion value to use for the prometheus-operator managed k8s resources
+*/}}
+{{- define "prometheus-operator.apiVersion" -}}
+{{- if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" }}
+{{- printf "%s" "monitoring.coreos.com/v1" -}}
+{{- else -}}
+{{- printf "%s" "monitoring.coreos.com/v1alpha1" -}}
+{{- end -}}
+{{- end -}}

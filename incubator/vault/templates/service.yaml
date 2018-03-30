@@ -23,3 +23,48 @@ spec:
   selector:
     app: {{ template "vault.name" . }}
     release: {{ .Release.Name }}
+{{- if .Values.sidecar.vaultExporter.enable }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "vault.fullname" . }}-exporter
+  labels:
+    app: {{ template "vault.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.sidecar.vaultExporter.service.port }}
+    protocol: TCP
+    name: {{ .Values.sidecar.vaultExporter.service.name }}
+  selector:
+    app: {{ template "vault.name" . }}
+    release: {{ .Release.Name }}
+---
+apiVersion: {{ template "prometheus-operator.apiVersion" . }}
+kind: ServiceMonitor
+metadata:
+  name: {{ template "vault.fullname" . }}-exporter
+  labels:
+    app: {{ template "vault.name" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: "{{ .Release.Service }}"
+    release: "{{ .Release.Name }}"
+    prometheus: kube-prometheus
+spec:
+  jobLabel: component
+  selector:
+    matchLabels:
+      app: {{ template "vault.name" . }}
+      release: "{{ .Release.Name }}"
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace | quote }}
+  endpoints:
+  - port: {{ .Values.sidecar.vaultExporter.service.name }}
+    interval: 15s
+    honorLabels: true
+{{- end }}

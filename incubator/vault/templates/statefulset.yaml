@@ -84,6 +84,23 @@ spec:
         {{- end }}
         resources:
 {{ toYaml .Values.resources | indent 10 }}
+      {{- if .Values.sidecar.vaultExporter.enable }}
+      - name: {{ .Chart.Name }}-exporter
+        image: "{{ .Values.sidecar.vaultExporter.image.repository }}:{{ .Values.sidecar.vaultExporter.image.tag }}"
+        imagePullPolicy: {{ .Values.sidecar.vaultExporter.image.pullPolicy }}
+        env:
+        - name: VAULT_ADDR
+          value: http://127.0.0.1:{{ .Values.service.port }}
+        ports:
+        - containerPort: {{ .Values.sidecar.vaultExporter.service.port }}
+          name: {{ .Values.sidecar.vaultExporter.service.name }}
+        livenessProbe:
+          tcpSocket:
+            port: {{ .Values.sidecar.vaultExporter.service.port }}
+        readinessProbe:
+          tcpSocket:
+            port: {{ .Values.sidecar.vaultExporter.service.port }}
+      {{- end }}
       {{- if .Values.affinity }}
       affinity:
 {{ tpl .Values.affinity . | indent 8 }}

@@ -13,6 +13,16 @@ service:
   # clusterIP: None
   # annotations:
   #   cloud.google.com/load-balancer-type: "Internal"
+sidecar:
+  vaultExporter:
+    enable: true
+    image:
+      repository: grapeshot/vault_exporter
+      tag: v0.1.0
+      pullPolicy: IfNotPresent
+    service:
+      port: 9410
+      name: exporter
 ingress:
   enabled: false
   # Used to create Ingress record (should used with service.type: ClusterIP).
