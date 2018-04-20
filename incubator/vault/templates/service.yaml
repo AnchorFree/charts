@@ -48,6 +48,7 @@ apiVersion: {{ template "prometheus-operator.apiVersion" . }}
 kind: ServiceMonitor
 metadata:
   name: {{ template "vault.fullname" . }}-exporter
+  namespace: {{ .Values.sidecar.vaultExporter.servicemonitor.namespace }}
   labels:
     app: {{ template "vault.name" . }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"

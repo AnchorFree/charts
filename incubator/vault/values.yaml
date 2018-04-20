@@ -23,6 +23,8 @@ sidecar:
     service:
       port: 9410
       name: exporter
+    servicemonitor:
+      namespace: monitoring
 ingress:
   enabled: false
   # Used to create Ingress record (should used with service.type: ClusterIP).
