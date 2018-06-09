@@ -78,6 +78,8 @@ spec:
           mountPath: /vault/config/
         - name: vault-root
           mountPath: /root/
+        - name: vault-tmp
+          mountPath: /tmp/
         {{- range .Values.vault.customSecrets }}
         - name: {{ .secretName }}
           mountPath: {{ .mountPath }}
@@ -110,6 +112,8 @@ spec:
           configMap:
             name: "{{ template "vault.fullname" . }}-config-{{ .Release.Revision }}"
         - name: vault-root
+          emptyDir: {}
+        - name: vault-tmp
           emptyDir: {}
         {{- range .Values.vault.customSecrets }}
         - name: {{ .secretName }}
